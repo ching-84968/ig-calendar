@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>meigan.95 IG 發布月曆</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;padding:20px 14px}
+.container{max-width:860px;margin:0 auto}
+h1{font-size:19px;font-weight:600;margin-bottom:2px}
+.subtitle{font-size:12px;color:#888;margin-bottom:16px}
+.tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:6px 15px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:12px;cursor:pointer;color:#666;transition:all .15s}
+.tab.active{background:#534AB7;color:#fff;border-color:#534AB7}
+.tab:hover:not(.active){background:#eee}
+.view{display:none}.view.active{display:block}
+
+/* summary cards */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px}
+.sum-card{background:#fff;border-radius:10px;border:1px solid #eee;padding:11px 13px}
+.sum-label{font-size:10px;color:#aaa;margin-bottom:3px}
+.sum-val{font-size:21px;font-weight:600}
+.sum-sub{font-size:10px;color:#999;margin-top:1px}
+.progress-wrap{background:#fff;border-radius:10px;border:1px solid #eee;padding:12px 15px;margin-bottom:14px}
+.progress-label{font-size:11px;color:#888;margin-bottom:5px;display:flex;justify-content:space-between}
+.progress-bar{background:#eee;border-radius:99px;height:7px;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px;background:#534AB7;transition:width .4s}
+
+/* nav */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.month-title{font-size:16px;font-weight:600}
+.nav-btn{background:#fff;border:1px solid #ddd;border-radius:8px;padding:5px 13px;cursor:pointer;font-size:12px;color:#555}
+.nav-btn:hover{background:#eee}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:#555}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.wd{text-align:center;font-size:10px;color:#bbb;padding:2px 0}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.day-cell{background:#fff;border-radius:7px;border:1px solid #eee;min-height:72px;padding:4px;font-size:9px;cursor:pointer;transition:border-color .15s;overflow:hidden}
+.day-cell:hover{border-color:#bbb}
+.day-cell.empty{background:transparent;border-color:transparent;cursor:default}
+.day-cell.today-cell{border:2px solid #534AB7}
+.day-num{font-size:10px;font-weight:500;color:#999;margin-bottom:2px}
+.today-num{background:#534AB7;color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.task-tag{display:block;border-radius:3px;padding:1px 3px;font-size:9px;line-height:1.5;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task-tag.done-tag{opacity:.45;text-decoration:line-through}
+.check-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e;margin-right:2px}
+.late-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#ef4444;margin-right:2px}
+.more{font-size:9px;color:#ccc}
+.tag-reels-pub{background:#534AB7;color:#fff}
+.tag-reels-mid{background:#CECBF6;color:#26215C}
+.tag-post-pub{background:#0F6E56;color:#fff}
+.tag-post-mid{background:#9FE1CB;color:#04342C}
+.tag-wall-pub{background:#BA7517;color:#fff}
+.tag-wall-mid{background:#FAC775;color:#412402}
+.tag-idea{background:#F5C4B3;color:#993C1D}
+
+/* panel */
+.panel{background:#fff;border-radius:11px;border:1px solid #eee;padding:14px 16px;margin-top:12px;min-height:56px}
+.panel-title{font-size:13px;font-weight:600;margin-bottom:9px}
+.panel-empty{font-size:12px;color:#bbb}
+.pub-item{border-bottom:1px solid #f2f2f2;padding:9px 0}
+.pub-item:last-child{border-bottom:none}
+.pub-item-header{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.pub-name{font-size:12px;font-weight:500}
+.pub-planned{font-size:10px;color:#aaa}
+.late-badge{font-size:10px;background:#fee2e2;color:#b91c1c;border-radius:4px;padding:1px 5px}
+.done-badge{font-size:10px;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 5px}
+.pub-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctrl-label{font-size:10px;color:#aaa;white-space:nowrap}
+.ctrl-date{border:1px solid #ddd;border-radius:5px;padding:3px 7px;font-size:11px;color:#333;outline:none}
+.ctrl-date:focus{border-color:#534AB7}
+.ctrl-check{width:14px;height:14px;cursor:pointer;accent-color:#534AB7}
+.note-input{width:100%;border:1px solid #eee;border-radius:5px;padding:5px 7px;font-size:11px;color:#333;margin-top:5px;outline:none;resize:none;font-family:inherit}
+.note-input:focus{border-color:#534AB7}
+
+/* stats inputs */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+.stat-field{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-size:10px;color:#aaa}
+.stat-input{border:1px solid #eee;border-radius:5px;padding:3px 6px;font-size:12px;color:#333;outline:none;width:100%}
+.stat-input:focus{border-color:#534AB7}
+
+/* review */
+.review-section{background:#fff;border-radius:11px;border:1px solid #eee;padding:16px;margin-bottom:12px}
+.review-section h2{font-size:14px;font-weight:600;margin-bottom:12px}
+.review-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
+.review-row:last-child{border-bottom:none}
+.rev-label{color:#555}
+.rev-val{font-weight:500}
+.rev-done{color:#0F6E56}.rev-late{color:#b91c1c}.rev-miss{color:#aaa}
+.month-sel-wrap{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+.month-sel{border:1px solid #ddd;border-radius:7px;padding:5px 11px;font-size:12px;background:#fff;outline:none;cursor:pointer}
+.perf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+.perf-card{background:#f8f8f6;border-radius:8px;padding:10px 12px;text-align:center}
+.perf-type{font-size:10px;color:#aaa;margin-bottom:3px}
+.perf-avg{font-size:16px;font-weight:600;color:#534AB7}
+.perf-sub{font-size:10px;color:#999;margin-top:2px}
+
+/* today view */
+.today-header{background:#fff;border-radius:11px;border:1px solid #eee;padding:14px 16px;margin-bottom:12px}
+.today-date{font-size:22px;font-weight:600;margin-bottom:2px}
+.today-sub{font-size:12px;color:#888}
+.today-task-list{display:flex;flex-direction:column;gap:8px}
+.today-task{background:#fff;border-radius:10px;border:1px solid #eee;padding:12px 14px;display:flex;align-items:flex-start;gap:10px}
+.today-task-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.today-task-body{flex:1}
+.today-task-title{font-size:13px;font-weight:500;margin-bottom:2px}
+.today-task-sub{font-size:11px;color:#aaa}
+.today-empty{background:#fff;border-radius:10px;border:1px solid #eee;padding:20px;text-align:center;color:#bbb;font-size:13px}
+
+/* topic planner */
+.topic-section{background:#fff;border-radius:11px;border:1px solid #eee;padding:16px;margin-bottom:12px}
+.topic-section h2{font-size:14px;font-weight:600;margin-bottom:12px}
+.topic-month-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.topic-month-title{font-size:13px;font-weight:500;flex:1}
+.topic-slots{display:flex;flex-direction:column;gap:10px}
+.topic-slot{border:1px solid #eee;border-radius:8px;padding:10px 12px}
+.topic-slot-header{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.topic-slot-tag{font-size:10px;border-radius:4px;padding:2px 7px}
+.topic-slot-date{font-size:10px;color:#aaa}
+.topic-textarea{width:100%;border:1px solid #eee;border-radius:5px;padding:6px 8px;font-size:11px;color:#333;outline:none;resize:none;font-family:inherit;line-height:1.5}
+.topic-textarea:focus{border-color:#534AB7}
+.topic-textarea::placeholder{color:#ccc}
+.add-note-btn{background:transparent;border:1px dashed #ddd;border-radius:7px;padding:8px;width:100%;font-size:11px;color:#aaa;cursor:pointer;margin-top:6px}
+.add-note-btn:hover{background:#f8f8f8}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>meigan.95 IG 發布月曆</h1>
+  <p class="subtitle">日常｜追星｜圖文｜插畫</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('today')">⏰ 今日</button>
+    <button class="tab" onclick="switchTab('cal')">📅 月曆</button>
+    <button class="tab" onclick="switchTab('topic')">🎯 主題規劃</button>
+    <button class="tab" onclick="switchTab('review')">📊 月度回顧</button>
+  </div>
+
+  <!-- TODAY VIEW -->
+  <div class="view active" id="view-today">
+    <div class="today-header">
+      <div class="today-date" id="today-date"></div>
+      <div class="today-sub" id="today-sub"></div>
+    </div>
+    <div class="today-task-list" id="today-tasks"></div>
+  </div>
+
+  <!-- CALENDAR VIEW -->
+  <div class="view" id="view-cal">
+    <div class="summary" id="summary"></div>
+    <div class="progress-wrap" id="progress-wrap"></div>
+    <div class="month-nav">
+      <button class="nav-btn" onclick="changeMonth(-1)">← 上月</button>
+      <span class="month-title" id="month-title"></span>
+      <button class="nav-btn" onclick="changeMonth(1)">下月 →</button>
+    </div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#534AB7"></div>Reels 發布</div>
+      <div class="leg"><div class="leg-dot" style="background:#CECBF6;border:1px solid #AFA9EC"></div>Reels 製作</div>
+      <div class="leg"><div class="leg-dot" style="background:#0F6E56"></div>圖文 發布</div>
+      <div class="leg"><div class="leg-dot" style="background:#9FE1CB;border:1px solid #5DCAA5"></div>圖文 製作</div>
+      <div class="leg"><div class="leg-dot" style="background:#BA7517"></div>桌布 發布</div>
+      <div class="leg"><div class="leg-dot" style="background:#FAC775;border:1px solid #EF9F27"></div>桌布 製作</div>
+      <div class="leg"><div class="leg-dot" style="background:#F5C4B3;border:1px solid #F0997B"></div>主題發想</div>
+    </div>
+    <div class="weekdays">
+      <div class="wd">日</div><div class="wd">一</div><div class="wd">二</div>
+      <div class="wd">三</div><div class="wd">四</div><div class="wd">五</div><div class="wd">六</div>
+    </div>
+    <div class="days-grid" id="days-grid"></div>
+    <div class="panel" id="detail-panel"><div class="panel-empty">點擊日期查看任務 / 標記完成</div></div>
+  </div>
+
+  <!-- TOPIC PLANNER -->
+  <div class="view" id="view-topic">
+    <div class="topic-section">
+      <div class="topic-month-nav">
+        <button class="nav-btn" onclick="changeTopicMonth(-1)">←</button>
+        <span class="topic-month-title" id="topic-month-title"></span>
+        <button class="nav-btn" onclick="changeTopicMonth(1)">→</button>
+      </div>
+      <div class="topic-slots" id="topic-slots"></div>
+    </div>
+  </div>
+
+  <!-- REVIEW VIEW -->
+  <div class="view" id="view-review">
+    <div class="month-sel-wrap">
+      <span style="font-size:12px;color:#666">查看</span>
+      <select class="month-sel" id="review-month-sel" onchange="renderReview()"></select>
+      <span style="font-size:12px;color:#666">的回顧</span>
+    </div>
+    <div id="review-content"></div>
+  </div>
+</div>
+
+<script>
+const MONTHS=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const WEEKDAYS=['日','一','二','三','四','五','六'];
+const today=new Date();
+let viewYear=today.getFullYear(),viewMonth=today.getMonth();
+let topicYear=today.getFullYear(),topicMonth=today.getMonth()+1; // next month default
+
+function skey(y,m){return `ig_cal_${y}_${m}`;}
+function tkey(y,m){return `ig_topic_${y}_${m}`;}
+function loadData(y,m){try{return JSON.parse(localStorage.getItem(skey(y,m)))||{};}catch(e){return {};}}
+function saveData(y,m,d){try{localStorage.setItem(skey(y,m),JSON.stringify(d));}catch(e){}}
+function loadTopics(y,m){try{return JSON.parse(localStorage.getItem(tkey(y,m)))||{};}catch(e){return {};}}
+function saveTopics(y,m,d){try{localStorage.setItem(tkey(y,m),JSON.stringify(d));}catch(e){}}
+
+function getDays(y,m){return new Date(y,m+1,0).getDate();}
+function getFirst(y,m){return new Date(y,m,1).getDay();}
+function getPubId(type,pub){return `${type}_${pub}`;}
+
+function buildPubItems(y,m){
+  const days=getDays(y,m),items=[];
+  [5,15,25].forEach(d=>items.push({id:getPubId('reels',d),label:'Reels',planned:d,type:'reels'}));
+  [10,20,30].forEach(d=>{if(d<=days)items.push({id:getPubId('post',d),label:'圖文',planned:d,type:'post'});});
+  if(28<=days)items.push({id:getPubId('wall',28),label:'桌布',planned:28,type:'wall'});
+  return items;
+}
+
+function buildSchedule(y,m){
+  const days=getDays(y,m),tasks={};
+  for(let d=1;d<=days;d++)tasks[d]=[];
+  const rS=['主題發想','腳本撰寫','插畫繪製','配音剪輯'];
+  [5,15,25].forEach(pub=>{
+    tasks[pub].push({label:'Reels 發布 🎬',type:'reels-pub',pubId:getPubId('reels',pub)});
+    for(let i=1;i<=4;i++){const pd=pub-i;if(pd>=1)tasks[pd].push({label:`Reels ${rS[4-i]}`,type:i===4?'idea':'reels-mid'});}
+  });
+  const pS=['文案定稿','草稿','線稿','上色','上字/細化'];
+  [10,20,30].forEach(pub=>{
+    if(pub<=days){
+      tasks[pub].push({label:'圖文 發布 🖼',type:'post-pub',pubId:getPubId('post',pub)});
+      for(let i=1;i<=5;i++){const pd=pub-i;if(pd>=1)tasks[pd].push({label:`圖文 ${pS[5-i]}`,type:i===5?'idea':'post-mid'});}
+    }
+  });
+  const wS=['主題發想','草稿','線稿','上色','細化'];
+  if(28<=days){
+    tasks[28].push({label:'桌布 發布 📱',type:'wall-pub',pubId:getPubId('wall',28)});
+    for(let i=1;i<=5;i++){const pd=28-i;if(pd>=1)tasks[pd].push({label:`桌布 ${wS[5-i]}`,type:i===5?'idea':'wall-mid'});}
+  }
+  return tasks;
+}
+
+function isLate(planned,actualStr,y,m){
+  if(!actualStr)return false;
+  return (new Date(actualStr)-new Date(y,m,planned))>3*86400000;
+}
+
+// ── TODAY VIEW ──
+function renderToday(){
+  const d=today.getDate(),m=today.getMonth(),y=today.getFullYear();
+  document.getElementById('today-date').textContent=`${m+1} 月 ${d} 日（${WEEKDAYS[today.getDay()]}）`;
+  const schedule=buildSchedule(y,m);
+  const tasks=schedule[d]||[];
+  const data=loadData(y,m);
+  const typeColors={
+    'reels-pub':'#534AB7','reels-mid':'#AFA9EC',
+    'post-pub':'#0F6E56','post-mid':'#5DCAA5',
+    'wall-pub':'#BA7517','wall-mid':'#EF9F27',
+    'idea':'#F0997B'
+  };
+  const container=document.getElementById('today-tasks');
+  // countdown to next pub
+  const allPubs=[5,10,15,20,25,28,30];
+  const futurePubs=allPubs.filter(p=>p>d&&p<=getDays(y,m));
+  const nextPub=futurePubs.length?futurePubs[0]:null;
+  const daysLeft=nextPub?nextPub-d:null;
+
+  let subText='';
+  if(daysLeft!==null) subText=`距離下一個發布日（${m+1}/${nextPub}）還有 ${daysLeft} 天`;
+  else subText='本月發布任務已全部完成！';
+  document.getElementById('today-sub').textContent=subText;
+
+  if(!tasks.length){
+    container.innerHTML=`<div class="today-empty">🎉 今天沒有排定任務，好好休息！</div>`;
+    return;
+  }
+  container.innerHTML=tasks.map(t=>{
+    const rec=t.pubId?data[t.pubId]||{}:{};
+    const done=!!rec.done;
+    const stepDescs={
+      'idea':'今天做主題發想，把靈感寫下來或是挑選音訊',
+      'reels-mid':t.label.includes('腳本')?'撰寫這支 Reels 的腳本與分鏡':t.label.includes('插畫')?'開始繪製 Reels 插畫':'完成配音並進行剪輯',
+      'reels-pub':'今天發布 Reels！記得加 hashtag 和結尾追蹤誘因',
+      'post-mid':t.label.includes('文案')?'先把圖文文案定稿':t.label.includes('草稿')?'開始畫草稿':t.label.includes('線稿')?'完成線稿':t.label.includes('上色')?'進行上色':'上字與細化收尾',
+      'post-pub':'今天發布圖文！記得加 hashtag',
+      'wall-mid':t.label.includes('主題')?'規劃下個月桌布主題':t.label.includes('草稿')?'畫桌布草稿':t.label.includes('線稿')?'完成線稿':t.label.includes('上色')?'進行上色':'細化桌布完稿',
+      'wall-pub':'今天發布下個月手機桌布！附上 Google Drive 下載連結',
+    };
+    return `<div class="today-task" style="opacity:${done?.6:1}">
+      <div class="today-task-dot" style="background:${typeColors[t.type]||'#ccc'}"></div>
+      <div class="today-task-body">
+        <div class="today-task-title">${done?'<s>':''} ${t.label} ${done?'</s> ✓':''}</div>
+        <div class="today-task-sub">${stepDescs[t.type]||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CALENDAR VIEW ──
+function renderSummary(data,pubItems){
+  const total=pubItems.length;
+  const done=pubItems.filter(it=>data[it.id]?.done).length;
+  const late=pubItems.filter(it=>data[it.id]?.done&&isLate(it.planned,data[it.id]?.actualDate,viewYear,viewMonth)).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('summary').innerHTML=`
+    <div class="sum-card"><div class="sum-label">本月目標</div><div class="sum-val" style="color:#534AB7">${total}</div><div class="sum-sub">篇/張</div></div>
+    <div class="sum-card"><div class="sum-label">已完成</div><div class="sum-val" style="color:#0F6E56">${done}</div><div class="sum-sub">準時${done-late}／遲到${late}</div></div>
+    <div class="sum-card"><div class="sum-label">未完成</div><div class="sum-val" style="color:#aaa">${total-done}</div><div class="sum-sub">還剩${total-done}項</div></div>
+    <div class="sum-card"><div class="sum-label">達成率</div><div class="sum-val" style="color:${pct>=80?'#0F6E56':pct>=50?'#BA7517':'#b91c1c'}">${pct}%</div><div class="sum-sub">本月進度</div></div>`;
+  document.getElementById('progress-wrap').innerHTML=`
+    <div class="progress-label"><span>本月發布進度</span><span>${done} / ${total}</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+}
+
+function renderCalendar(){
+  document.getElementById('month-title').textContent=`${viewYear} 年 ${MONTHS[viewMonth]}`;
+  const days=getDays(viewYear,viewMonth),first=getFirst(viewYear,viewMonth);
+  const schedule=buildSchedule(viewYear,viewMonth);
+  const data=loadData(viewYear,viewMonth);
+  const pubItems=buildPubItems(viewYear,viewMonth);
+  renderSummary(data,pubItems);
+  const grid=document.getElementById('days-grid');
+  grid.innerHTML='';
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day-cell empty';grid.appendChild(e);}
+  for(let d=1;d<=days;d++){
+    const isToday=d===today.getDate()&&viewMonth===today.getMonth()&&viewYear===today.getFullYear();
+    const cell=document.createElement('div');
+    cell.className='day-cell'+(isToday?' today-cell':'');
+    const numDiv=document.createElement('div');
+    numDiv.className='day-num'+(isToday?' today-num':'');
+    numDiv.textContent=d;
+    cell.appendChild(numDiv);
+    const dayTasks=schedule[d]||[];
+    dayTasks.slice(0,2).forEach(t=>{
+      const rec=t.pubId?data[t.pubId]:null;
+      const done=rec?.done,late=done&&isLate(d,rec?.actualDate,viewYear,viewMonth);
+      const tag=document.createElement('span');
+      tag.className=`task-tag tag-${t.type}`+(done?' done-tag':'');
+      tag.innerHTML=(done?`<span class="check-dot"></span>`:'')+( late?`<span class="late-dot"></span>`:'')+t.label;
+      cell.appendChild(tag);
+    });
+    if(dayTasks.length>2){const m=document.createElement('div');m.className='more';m.textContent=`+${dayTasks.length-2}`;cell.appendChild(m);}
+    cell.addEventListener('click',()=>showDetail(d,dayTasks,data));
+    grid.appendChild(cell);
+  }
+  document.getElementById('detail-panel').innerHTML='<div class="panel-empty">點擊日期查看任務 / 標記完成</div>';
+}
+
+function showDetail(d,tasks,data){
+  const panel=document.getElementById('detail-panel');
+  const pubTasks=tasks.filter(t=>t.pubId),otherTasks=tasks.filter(t=>!t.pubId);
+  if(!tasks.length){panel.innerHTML=`<div class="panel-title">${viewMonth+1} 月 ${d} 日</div><div class="panel-empty">今天沒有排定任務，好好休息！☕</div>`;return;}
+  let html=`<div class="panel-title">${viewMonth+1} 月 ${d} 日</div>`;
+  pubTasks.forEach(t=>{
+    const rec=data[t.pubId]||{};
+    const done=!!rec.done,late=done&&isLate(d,rec.actualDate,viewYear,viewMonth);
+    html+=`<div class="pub-item">
+      <div class="pub-item-header">
+        <span class="task-tag tag-${t.type}" style="font-size:10px;display:inline-block;white-space:nowrap">${t.label}</span>
+        <span class="pub-planned">預定 ${viewMonth+1}/${d}</span>
+        ${done?`<span class="done-badge">✓ 已發布</span>`:''}
+        ${late?`<span class="late-badge">⚠ 遲到</span>`:''}
+      </div>
+      <div class="pub-controls">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" class="ctrl-check" ${done?'checked':''} onchange="toggleDone('${t.pubId}',this.checked,${d})">
+          <span class="ctrl-label">標記已發布</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:4px">
+          <span class="ctrl-label">實際發布日</span>
+          <input type="date" class="ctrl-date" value="${rec.actualDate||''}" onchange="setActualDate('${t.pubId}',this.value,${d})">
+        </label>
+      </div>
+      <div class="stats-row">
+        <div class="stat-field"><span class="stat-label">觸及數</span><input type="number" class="stat-input" placeholder="e.g. 3882" value="${rec.reach||''}" onchange="setStat('${t.pubId}','reach',this.value,${d})"></div>
+        <div class="stat-field"><span class="stat-label">讚數</span><input type="number" class="stat-input" placeholder="e.g. 193" value="${rec.likes||''}" onchange="setStat('${t.pubId}','likes',this.value,${d})"></div>
+        <div class="stat-field"><span class="stat-label">分享數</span><input type="number" class="stat-input" placeholder="e.g. 58" value="${rec.shares||''}" onchange="setStat('${t.pubId}','shares',this.value,${d})"></div>
+      </div>
+      <textarea class="note-input" rows="2" placeholder="備註（例：這篇互動超好、下次避免這個主題...）" onchange="setNote('${t.pubId}',this.value,${d})">${rec.note||''}</textarea>
+    </div>`;
+  });
+  if(otherTasks.length){
+    html+=`<div style="margin-top:${pubTasks.length?'8px':'0'}">`;
+    otherTasks.forEach(t=>{html+=`<div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f5f5f5;font-size:11px;color:#555"><span class="task-tag tag-${t.type}" style="display:inline-block;white-space:nowrap;font-size:9px">${t.label.split(' ')[0]}</span>${t.label}</div>`;});
+    html+=`</div>`;
+  }
+  panel.innerHTML=html;
+}
+
+function toggleDone(pubId,checked,d){
+  const data=loadData(viewYear,viewMonth);
+  if(!data[pubId])data[pubId]={};
+  data[pubId].done=checked;
+  if(checked&&!data[pubId].actualDate)data[pubId].actualDate=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  saveData(viewYear,viewMonth,data);
+  renderCalendar();
+  showDetail(d,buildSchedule(viewYear,viewMonth)[d]||[],loadData(viewYear,viewMonth));
+}
+function setActualDate(pubId,val,d){
+  const data=loadData(viewYear,viewMonth);
+  if(!data[pubId])data[pubId]={};
+  data[pubId].actualDate=val;
+  saveData(viewYear,viewMonth,data);
+  renderCalendar();
+  showDetail(d,buildSchedule(viewYear,viewMonth)[d]||[],loadData(viewYear,viewMonth));
+}
+function setStat(pubId,field,val,d){
+  const data=loadData(viewYear,viewMonth);
+  if(!data[pubId])data[pubId]={};
+  data[pubId][field]=val;
+  saveData(viewYear,viewMonth,data);
+}
+function setNote(pubId,val,d){
+  const data=loadData(viewYear,viewMonth);
+  if(!data[pubId])data[pubId]={};
+  data[pubId].note=val;
+  saveData(viewYear,viewMonth,data);
+}
+function changeMonth(dir){
+  viewMonth+=dir;
+  if(viewMonth>11){viewMonth=0;viewYear++;}
+  if(viewMonth<0){viewMonth=11;viewYear--;}
+  renderCalendar();
+}
+
+// ── TOPIC PLANNER ──
+function renderTopicPlanner(){
+  // show next month by default
+  const tm=topicMonth-1; // 0-indexed
+  document.getElementById('topic-month-title').textContent=`${topicYear} 年 ${MONTHS[tm]} 主題規劃`;
+  const pubItems=buildPubItems(topicYear,tm);
+  const topics=loadTopics(topicYear,tm);
+  const typeColors={'reels':'#534AB7','post':'#0F6E56','wall':'#BA7517'};
+  const typeLabel={'reels':'Reels','post':'圖文','wall':'桌布'};
+  const typeBg={'reels':'#EEEDFE','post':'#E1F5EE','wall':'#FAEEDA'};
+  const typeText={'reels':'#3C3489','post':'#085041','wall':'#633806'};
+  let html='';
+  pubItems.forEach(it=>{
+    const val=topics[it.id]||'';
+    html+=`<div class="topic-slot">
+      <div class="topic-slot-header">
+        <span class="topic-slot-tag" style="background:${typeBg[it.type]};color:${typeText[it.type]}">${typeLabel[it.type]}</span>
+        <span class="topic-slot-date">${tm+1}/${it.planned} 發布</span>
+      </div>
+      <textarea class="topic-textarea" rows="2" placeholder="寫下這篇的主題、靈感或音訊備忘..." onchange="saveTopic('${it.id}',this.value)">${val}</textarea>
+    </div>`;
+  });
+  document.getElementById('topic-slots').innerHTML=html;
+}
+function saveTopic(id,val){
+  const tm=topicMonth-1;
+  const topics=loadTopics(topicYear,tm);
+  topics[id]=val;
+  saveTopics(topicYear,tm,topics);
+}
+function changeTopicMonth(dir){
+  topicMonth+=dir;
+  if(topicMonth>12){topicMonth=1;topicYear++;}
+  if(topicMonth<1){topicMonth=12;topicYear--;}
+  renderTopicPlanner();
+}
+
+// ── REVIEW ──
+function populateReviewMonthSel(){
+  const sel=document.getElementById('review-month-sel');
+  sel.innerHTML='';
+  for(let i=0;i<12;i++){
+    const opt=document.createElement('option');
+    opt.value=i;opt.textContent=`${viewYear} 年 ${MONTHS[i]}`;
+    if(i===today.getMonth())opt.selected=true;
+    sel.appendChild(opt);
+  }
+}
+function renderReview(){
+  const m=parseInt(document.getElementById('review-month-sel').value),y=viewYear;
+  const data=loadData(y,m),pubItems=buildPubItems(y,m);
+  const done=pubItems.filter(it=>data[it.id]?.done);
+  const undone=pubItems.filter(it=>!data[it.id]?.done);
+  const late=done.filter(it=>isLate(it.planned,data[it.id]?.actualDate,y,m));
+  const onTime=done.filter(it=>!isLate(it.planned,data[it.id]?.actualDate,y,m));
+  const pct=pubItems.length?Math.round(done.length/pubItems.length*100):0;
+  const typeLabel={reels:'Reels',post:'圖文',wall:'桌布'};
+
+  // perf averages by type
+  const typeStats={reels:{reach:[],likes:[],shares:[]},post:{reach:[],likes:[],shares:[]},wall:{reach:[],likes:[],shares:[]}};
+  pubItems.forEach(it=>{
+    const rec=data[it.id]||{};
+    if(rec.reach)typeStats[it.type].reach.push(+rec.reach);
+    if(rec.likes)typeStats[it.type].likes.push(+rec.likes);
+    if(rec.shares)typeStats[it.type].shares.push(+rec.shares);
+  });
+  const avg=(arr)=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):'-';
+
+  let rows='';
+  pubItems.forEach(it=>{
+    const rec=data[it.id]||{};
+    const isDone=!!rec.done,isL=isDone&&isLate(it.planned,rec.actualDate,y,m);
+    const actualStr=rec.actualDate?`實際：${rec.actualDate}`:'';
+    const statsStr=[rec.reach?`觸及${rec.reach}`:'',rec.likes?`讚${rec.likes}`:'',rec.shares?`分享${rec.shares}`:''].filter(Boolean).join('・');
+    rows+=`<div class="review-row">
+      <span class="rev-label">${typeLabel[it.type]} ${m+1}/${it.planned}</span>
+      <span class="${isDone?(isL?'rev-late':'rev-done'):'rev-miss'}">${isDone?(isL?'⚠ 遲到':'✓ 準時'):'— 未完成'}</span>
+      <span style="font-size:10px;color:#aaa;text-align:right">${statsStr||actualStr}</span>
+    </div>`;
+  });
+
+  let notes='';
+  pubItems.forEach(it=>{
+    const rec=data[it.id]||{};
+    if(rec.note)notes+=`<div class="review-row"><span class="rev-label">${typeLabel[it.type]} ${m+1}/${it.planned}</span><span style="font-size:11px;color:#555;text-align:right;max-width:60%">${rec.note}</span></div>`;
+  });
+
+  document.getElementById('review-content').innerHTML=`
+    <div class="review-section">
+      <h2>📊 ${y} 年 ${MONTHS[m]} 總結</h2>
+      <div class="review-row"><span class="rev-label">總目標</span><span class="rev-val">${pubItems.length} 篇/張</span></div>
+      <div class="review-row"><span class="rev-label">達成率</span><span class="rev-val" style="color:${pct>=80?'#0F6E56':pct>=50?'#BA7517':'#b91c1c'}">${pct}%</span></div>
+      <div class="review-row"><span class="rev-label">準時發布</span><span class="rev-val rev-done">${onTime.length} 篇</span></div>
+      <div class="review-row"><span class="rev-label">遲到發布</span><span class="rev-val rev-late">${late.length} 篇</span></div>
+      <div class="review-row"><span class="rev-label">未完成</span><span class="rev-val rev-miss">${undone.length} 篇</span></div>
+    </div>
+    <div class="review-section">
+      <h2>📈 各類型平均表現</h2>
+      <div class="perf-grid">
+        <div class="perf-card"><div class="perf-type">Reels</div><div class="perf-avg">${avg(typeStats.reels.reach)}</div><div class="perf-sub">平均觸及</div></div>
+        <div class="perf-card"><div class="perf-type">圖文</div><div class="perf-avg">${avg(typeStats.post.reach)}</div><div class="perf-sub">平均觸及</div></div>
+        <div class="perf-card"><div class="perf-type">桌布</div><div class="perf-avg">${avg(typeStats.wall.reach)}</div><div class="perf-sub">平均觸及</div></div>
+      </div>
+    </div>
+    <div class="review-section"><h2>📋 各項明細</h2>${rows||'<div class="panel-empty">尚無資料</div>'}</div>
+    ${notes?`<div class="review-section"><h2>📝 本月備註</h2>${notes}</div>`:''}
+  `;
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const tabIdx={today:0,cal:1,topic:2,review:3};
+  document.querySelectorAll('.tab')[tabIdx[tab]].classList.add('active');
+  document.getElementById(`view-${tab}`).classList.add('active');
+  if(tab==='cal')renderCalendar();
+  if(tab==='topic')renderTopicPlanner();
+  if(tab==='review')renderReview();
+}
+
+populateReviewMonthSel();
+renderToday();
+</script>
+</body>
+</html>
